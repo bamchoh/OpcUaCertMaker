@@ -260,26 +260,21 @@
             </GroupBox>
 
 
-            <GroupBox Header="Self-Signed Certification Generation" Margin="10,0,10,0" Background="#FFE5E5E5">
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Generate" Width="80" Height="40" Grid.Row="12" Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="0,0,10,0" Padding="10,0,10,0"
-                    Command="{Binding CreateSelfSignedCertificateCommand}" VerticalAlignment="Center"/>
+            <GroupBox Header="Certification Generation" Margin="10,0,10,0" Background="#FFE5E5E5">
+                <StackPanel Orientation="Vertical">
+                    <CheckBox Content="Use existing private key if available" Margin="20,0,0,0" Height="40" IsChecked="{Binding UseExistingPrivateKey, Mode=TwoWay}" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
 
-                    <CheckBox Content="Use existing private key if available" Margin="20,0,10,0" IsChecked="{Binding UseExistingPrivateKey, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Generate by Self" Width="120" Height="40" Grid.Row="12" Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="0,0,10,0" Padding="10,0,10,0" 
+                                Command="{Binding CreateSelfSignedCertificateCommand}" VerticalAlignment="Center"/>
 
-                </DockPanel>
-            </GroupBox>
-
-            <GroupBox Header="CA-Signed Certification Generation" Margin="10,0,10,0" Background="#FFE5E5E5">
-                <StackPanel>
-                    <DockPanel Margin="0,0,0,0">
-                        <Button DockPanel.Dock="Right" Content="Generate" Width="80" Height="40" Margin="0,0,10,0" Padding="10,0,10,0" HorizontalAlignment="Center" Command="{Binding CreateIntermediateCertificateCommand}" />
+                        <Button DockPanel.Dock="Right" Content="Generate by CA" Width="120" Height="40" Margin="0,0,10,0" Padding="10,0,10,0" HorizontalAlignment="Center" Command="{Binding CreateIntermediateCertificateCommand}" />
 
                         <Label></Label>
+
                     </DockPanel>
                 </StackPanel>
             </GroupBox>
-
 
             <GroupBox Header="CRL" Margin="10,0,10,0" Background="#FFE5E5E5">
                 <StackPanel>
