@@ -17,6 +17,10 @@ namespace OpcUaCertMaker
     /// </summary>
     public partial class MainWindow : Window
     {
+        private const string CertificateFilter = "Certificate Files (*.cer;*.crt;*.der;*.pem)|*.cer;*.crt;*.der;*.pem|All Files (*.*)|*.*";
+
+        private const string PrivateKeyFilter = "Private Key Files (*.key;*.pfx;*.pem)|*.key;*.pfx;*.pem|All Files (*.*)|*.*";
+
         public MainWindow()
         {
             InitializeComponent();
@@ -24,17 +28,44 @@ namespace OpcUaCertMaker
             this.DataContext = new MainWindowVM();
         }
 
-        private void BrowseRevokeCert_Click(object sender, RoutedEventArgs e)
+        private void OpenFileDialog(string filter, Action<string> action)
         {
             var dialog = new OpenFileDialog();
-            dialog.Filter = "Certificate Files (*.cer;*.crt;*.der;*.pem)|*.cer;*.crt;*.der;*.pem|All Files (*.*)|*.*";
+            dialog.Filter = filter;
             if (dialog.ShowDialog() == true)
             {
+                action(dialog.FileName);
+            }
+        }
+
+        private void BrowseRevokeCert_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog(CertificateFilter, (filename) => {
                 if (this.DataContext is MainWindowVM vm)
                 {
-                    vm.RevokeCertificateInput = dialog.FileName;
+                    vm.RevokeCertificateInput = filename;
                 }
-            }
+            });
+        }
+
+        private void BrowseRootCAPrivateKey_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog(PrivateKeyFilter, (filename) => {
+                if (this.DataContext is MainWindowVM vm)
+                {
+                    vm.RootCAPrivateKeyInput = filename;
+                }
+            });
+        }
+
+        private void BrowseRootCACert_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog(CertificateFilter, (filename) => {
+                if (this.DataContext is MainWindowVM vm)
+                {
+                    vm.RootCACertificateInput = filename;
+                }
+            });
         }
     }
 }

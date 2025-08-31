@@ -1,26 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.IO;
-using Prism.Commands;
-using Prism.Mvvm;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using Org.BouncyCastle.Asn1;
-using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Asn1.Pkcs;
+using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Operators;
 using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.OpenSsl;
+using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
-using Org.BouncyCastle.Pkcs;
-using Org.BouncyCastle.OpenSsl;
-using Org.BouncyCastle.Math;
-using Org.BouncyCastle.Crypto.Operators;
+using Prism.Commands;
+using Prism.Mvvm;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.ConstrainedExecution;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace OpcUaCertMaker
 {
@@ -148,6 +150,25 @@ namespace OpcUaCertMaker
         public DelegateCommand CreateSelfSignedCertificateCommand =>
             _createSelfSignedCertificateCommand ?? (_createSelfSignedCertificateCommand = new DelegateCommand(ExecuteCreateSelfSignedCertificate));
 
+
+        private string _rootCAPrivateKeyInput;
+        public string RootCAPrivateKeyInput
+        {
+            get => _rootCAPrivateKeyInput;
+            set => SetProperty(ref _rootCAPrivateKeyInput, value);
+        }
+
+        private string _rootCACertificateInput;
+        public string RootCACertificateInput
+        {
+            get => _rootCACertificateInput;
+            set => SetProperty(ref _rootCACertificateInput, value);
+        }
+
+        private DelegateCommand _createIntermediateCertificateCommand;
+        public DelegateCommand CreateIntermediateCertificateCommand =>
+            _createIntermediateCertificateCommand ?? (_createIntermediateCertificateCommand = new DelegateCommand(ExecuteCreateIntermediateCertificate));
+
         private DelegateCommand _selectFolderCommand;
         public DelegateCommand SelectFolderCommand =>
             _selectFolderCommand ?? (_selectFolderCommand = new DelegateCommand(ExecuteSelectFolder));
@@ -172,7 +193,6 @@ namespace OpcUaCertMaker
             try
             {
                 AsymmetricCipherKeyPair keyPair = null;
-                var random = new SecureRandom();
 
                 string keyPath = null;
                 bool writePrivateKey = true;
@@ -235,6 +255,8 @@ namespace OpcUaCertMaker
                         }
                     }
                 }
+
+                var random = new SecureRandom();
 
                 if (keyPair == null)
                 {
@@ -368,46 +390,9 @@ namespace OpcUaCertMaker
         {
             try
             {
-                AsymmetricKeyParameter privateKey = null;
-                Org.BouncyCastle.X509.X509Certificate cert = null;
                 var random = new SecureRandom();
 
-                if (PrivateKeyFormat == PrivateKeyFormat.PEM)
-                {
-                    // PEM: .key (PKCS#8) and .der
-                    var keyPath = Path.Combine(OutputFolder, BaseFileName + ".key");
-                    var certPath = Path.Combine(OutputFolder, BaseFileName + ".der");
-                    using (var reader = File.OpenText(keyPath))
-                    {
-                        var pemReader = new PemReader(reader);
-                        var obj = pemReader.ReadObject();
-                        if (obj is AsymmetricCipherKeyPair kp)
-                            privateKey = kp.Private;
-                        else if (obj is AsymmetricKeyParameter pk)
-                            privateKey = pk;
-                    }
-                    var certRaw = File.ReadAllBytes(certPath);
-                    cert = new X509CertificateParser().ReadCertificate(certRaw);
-                }
-                else if (PrivateKeyFormat == PrivateKeyFormat.PFX)
-                {
-                    // PFX: .pfx
-                    var pfxPath = Path.Combine(OutputFolder, BaseFileName + ".pfx");
-                    var store = new Pkcs12Store(new FileStream(pfxPath, FileMode.Open, FileAccess.Read), new char[0]);
-                    string alias = null;
-                    foreach (string a in store.Aliases)
-                    {
-                        if (store.IsKeyEntry(a)) { alias = a; break; }
-                    }
-                    var keyEntry = store.GetKey(alias);
-                    privateKey = keyEntry.Key;
-                    var certEntry = store.GetCertificate(alias);
-                    cert = certEntry.Certificate;
-                }
-                else
-                {
-                    throw new NotSupportedException("Unsupported private key format for CRL creation.");
-                }
+                var (privateKey, cert) = LoadCaCertificateAndKey(RootCAPrivateKeyInput, RootCACertificateInput);
 
                 var issuerDN = cert.SubjectDN;
                 var signatureFactory = new Asn1SignatureFactory("SHA256WITHRSA", privateKey, random);
@@ -473,46 +458,10 @@ namespace OpcUaCertMaker
 
                 var serial = certToRevoke.SerialNumber;
 
-                AsymmetricKeyParameter privateKey = null;
-                Org.BouncyCastle.X509.X509Certificate cert = null;
                 var random = new SecureRandom();
-
-                if (PrivateKeyFormat == PrivateKeyFormat.PEM)
-                {
-                    var keyPath = Path.Combine(OutputFolder, BaseFileName + ".key");
-                    var certPath = Path.Combine(OutputFolder, BaseFileName + ".der");
-                    using (var reader = File.OpenText(keyPath))
-                    {
-                        var pemReader = new PemReader(reader);
-                        var obj = pemReader.ReadObject();
-                        if (obj is AsymmetricCipherKeyPair kp)
-                            privateKey = kp.Private;
-                        else if (obj is AsymmetricKeyParameter pk)
-                            privateKey = pk;
-                    }
-                    var certRaw = File.ReadAllBytes(certPath);
-                    cert = new X509CertificateParser().ReadCertificate(certRaw);
-                }
-                else if (PrivateKeyFormat == PrivateKeyFormat.PFX)
-                {
-                    var pfxPath = Path.Combine(OutputFolder, BaseFileName + ".pfx");
-                    var store = new Pkcs12Store(new FileStream(pfxPath, FileMode.Open, FileAccess.Read), new char[0]);
-                    string alias = null;
-                    foreach (string a in store.Aliases)
-                    {
-                        if (store.IsKeyEntry(a)) { alias = a; break; }
-                    }
-                    var keyEntry = store.GetKey(alias);
-                    privateKey = keyEntry.Key;
-                    var certEntry = store.GetCertificate(alias);
-                    cert = certEntry.Certificate;
-                }
-                else
-                {
-                    throw new NotSupportedException("Unsupported private key format for CRL creation.");
-                }
-
+                var (privateKey, cert) = LoadCaCertificateAndKey(RootCAPrivateKeyInput, RootCACertificateInput);
                 var issuerDN = cert.SubjectDN;
+
                 var signatureFactory = new Asn1SignatureFactory("SHA256WITHRSA", privateKey, random);
 
                 var crlGen = new X509V2CrlGenerator();
@@ -535,6 +484,194 @@ namespace OpcUaCertMaker
             {
                 System.Windows.MessageBox.Show(
                     $"An error occurred while creating the CRL.\n{ex.Message}",
+                    "Error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private (AsymmetricKeyParameter, Org.BouncyCastle.X509.X509Certificate) LoadCaCertificateAndKey(string privateKeyPath, string certPath)
+        {
+            AsymmetricKeyParameter privateKey = null;
+            Org.BouncyCastle.X509.X509Certificate cert = null;
+
+
+            switch(Path.GetExtension(privateKeyPath).ToLower())
+            {
+                case ".pem":
+                case ".key":
+                    {
+                        using (var reader = File.OpenText(privateKeyPath))
+                        {
+                            var pemReader = new PemReader(reader, new PasswordFinder(""));
+                            var obj = pemReader.ReadObject();
+                            if (obj is AsymmetricCipherKeyPair kp)
+                                privateKey = kp.Private;
+                            else if (obj is AsymmetricKeyParameter pk)
+                                privateKey = pk;
+                        }
+                        var certRaw = File.ReadAllBytes(certPath);
+                        cert = new X509CertificateParser().ReadCertificate(certRaw);
+                    }
+                    break;
+                case ".pfx":
+                case ".p12":
+                    {
+                        using (var stream = new FileStream(privateKeyPath, FileMode.Open, FileAccess.Read))
+                        {
+                            var store = new Pkcs12Store(stream, new char[0]);
+                            string alias = null;
+                            foreach (string a in store.Aliases)
+                            {
+                                if (store.IsKeyEntry(a)) { alias = a; break; }
+                            }
+                            var keyEntry = store.GetKey(alias);
+                            privateKey = keyEntry.Key;
+                            var certEntry = store.GetCertificate(alias);
+                            cert = certEntry.Certificate;
+                        }
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException("Unsupported private key format for CA loading.");
+            }
+            return (privateKey, cert);
+        }
+
+        /// <summary>
+        /// Generate an intermediate CA certificate using UI parameters and sign it with the root CA.
+        /// </summary>
+        public void ExecuteCreateIntermediateCertificate()
+        {
+            try
+            {
+                // Load root CA private key and certificate
+                var (rootPrivateKey, rootCert) = LoadCaCertificateAndKey(RootCAPrivateKeyInput, RootCACertificateInput);
+
+                var random = new SecureRandom();
+
+                // Generate intermediate CA key pair
+                var keyGen = new RsaKeyPairGenerator();
+                keyGen.Init(new KeyGenerationParameters(random, 2048));
+                var intermediateKeyPair = keyGen.GenerateKeyPair();
+
+                var certGen = new X509V3CertificateGenerator();
+                var subjectDN = new X509Name(BuildDistinguishedName());
+                var issuerDN = rootCert.SubjectDN;
+                var serialNumber = BigInteger.ProbablePrime(120, random);
+                certGen.SetSerialNumber(serialNumber);
+                certGen.SetIssuerDN(issuerDN);
+                certGen.SetSubjectDN(subjectDN);
+                certGen.SetNotBefore(NotBefore.ToUniversalTime());
+                certGen.SetNotAfter(NotAfter.ToUniversalTime());
+                certGen.SetPublicKey(intermediateKeyPair.Public);
+
+                // KeyUsage: 0xf4
+                certGen.AddExtension(X509Extensions.KeyUsage, true,
+                    new KeyUsage(KeyUsage.KeyEncipherment | KeyUsage.DataEncipherment | KeyUsage.DigitalSignature | KeyUsage.NonRepudiation | KeyUsage.KeyCertSign | KeyUsage.CrlSign));
+
+                // EKU: Server/Client Auth
+                certGen.AddExtension(X509Extensions.ExtendedKeyUsage, true,
+                    new ExtendedKeyUsage(new[] {
+                        KeyPurposeID.IdKPServerAuth,
+                        KeyPurposeID.IdKPClientAuth
+                    }));
+
+                // Subject Alternative Name (SAN)
+                var sanList = new List<GeneralName>();
+                foreach (var dns in SanDnsNames.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    if (!string.IsNullOrWhiteSpace(dns))
+                        sanList.Add(new GeneralName(GeneralName.DnsName, dns));
+                }
+                if (!string.IsNullOrWhiteSpace(SanUris))
+                {
+                    sanList.Add(new GeneralName(GeneralName.UniformResourceIdentifier, SanUris));
+                }
+                foreach (var ipStr in SanIPAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    if (!string.IsNullOrWhiteSpace(ipStr))
+                        sanList.Add(new GeneralName(GeneralName.IPAddress, ipStr));
+                }
+                if (sanList.Count > 0)
+                {
+                    var sanSeq = new DerSequence(sanList.ToArray());
+                    certGen.AddExtension(X509Extensions.SubjectAlternativeName, false, sanSeq);
+                }
+
+                // Subject Key Identifier
+                var pubKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(intermediateKeyPair.Public);
+                certGen.AddExtension(X509Extensions.SubjectKeyIdentifier, false,
+                    new SubjectKeyIdentifier(pubKeyInfo));
+
+                // Authority Key Identifier (自己署名なのでSKIと同じ)
+                // certGen.AddExtension(X509Extensions.AuthorityKeyIdentifier, false,
+                //    new AuthorityKeyIdentifier(pubKeyInfo, new GeneralNames(new GeneralName(subjectDN)), serialNumber));
+
+                var rootPubKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(rootCert.GetPublicKey());
+                certGen.AddExtension(X509Extensions.AuthorityKeyIdentifier, false,
+                    new AuthorityKeyIdentifier(rootPubKeyInfo, new GeneralNames(new GeneralName(rootCert.SubjectDN)), rootCert.SerialNumber));
+
+                // Netscape Comment (IA5String)
+                certGen.AddExtension(new DerObjectIdentifier("2.16.840.1.113730.1.13"), false,
+                    new DerIA5String("Generated by OpcUaCertMaker"));
+
+                // Basic Constraints (CA: true)
+                certGen.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(true));
+
+                var signatureFactory = new Asn1SignatureFactory("SHA256WITHRSA", rootPrivateKey, random);
+                var intermediateCert = certGen.Generate(signatureFactory);
+
+
+                string interKeyPath = null;
+                if (PrivateKeyFormat == PrivateKeyFormat.PEM)
+                {
+                    interKeyPath = Path.Combine(OutputFolder, BaseFileName + ".key");
+                }
+                else if (PrivateKeyFormat == PrivateKeyFormat.PFX)
+                {
+                    interKeyPath = Path.Combine(OutputFolder, BaseFileName + ".pfx");
+                }
+
+                switch (PrivateKeyFormat)
+                {
+                    case PrivateKeyFormat.PEM:
+                        using (var sw = new StreamWriter(interKeyPath, false, Encoding.ASCII))
+                        {
+                            var pkcs8 = new Pkcs8Generator(intermediateKeyPair.Private, Pkcs8Generator.PbeSha1_3DES);
+                            var pemWriter = new PemWriter(sw);
+                            pemWriter.WriteObject(pkcs8);
+                        }
+                        break;
+
+                    case PrivateKeyFormat.PFX:
+                        var store = new Pkcs12StoreBuilder().Build();
+                        store.SetKeyEntry("OpcUaCert", new AsymmetricKeyEntry(intermediateKeyPair.Private), new[] { new X509CertificateEntry(intermediateCert) });
+                        using (var fs = File.Create(interKeyPath))
+                        {
+                            store.Save(fs, new char[0], random);
+                        }
+                        break;
+
+                    default:
+                        throw new NotSupportedException($"Unsupported private key format: {PrivateKeyFormat}");
+                }
+
+
+                // Save intermediate certificate (DER)
+                var intermCertPath = Path.Combine(OutputFolder, BaseFileName + ".der");
+                File.WriteAllBytes(intermCertPath, intermediateCert.GetEncoded());
+
+                System.Windows.MessageBox.Show(
+                    $"Intermediate CA certificate and private key were created successfully.\nCertificate: {intermCertPath}\nPrivate Key: {interKeyPath}",
+                    "Success",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"An error occurred while creating the intermediate certificate.\n{ex.Message}",
                     "Error",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Error);
@@ -567,5 +704,88 @@ namespace OpcUaCertMaker
                 return _password;
             }
         }
+
+        public void SaveSettings()
+        {
+            var dialog = new SaveFileDialog();
+            dialog.FileName = SettingsFilePath;
+            var directoryPath = Path.GetDirectoryName(SettingsFilePath);
+            if (Directory.Exists(directoryPath))
+            {
+                dialog.InitialDirectory = directoryPath;
+            }
+            dialog.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*";
+            if (dialog.ShowDialog() == true)
+            {
+                SettingsFilePath = dialog.FileName;
+            }
+
+            var settings = new AppSettings
+            {
+                OutputFolder = this.OutputFolder,
+                BaseFileName = this.BaseFileName,
+                PrivateKeyFormat = this.PrivateKeyFormat.ToString(),
+                CommonName = this.CommonName,
+                Organization = this.Organization,
+                OrganizationUnit = this.OrganizationUnit,
+                Locality = this.Locality,
+                State = this.State,
+                Country = this.Country,
+                SanUris = this.SanUris,
+                SanDnsNames = this.SanDnsNames,
+                SanIPAddresses = this.SanIPAddresses
+            };
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(SettingsFilePath, json);
+        }
+
+        public void LoadSettings()
+        {
+            var dialog = new OpenFileDialog();
+            dialog.FileName = SettingsFilePath;
+            var directoryPath = Path.GetDirectoryName(SettingsFilePath);
+            if (Directory.Exists(directoryPath))
+            {
+                dialog.InitialDirectory = directoryPath;
+            }
+            dialog.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*";
+            if (dialog.ShowDialog() == true)
+            {
+                SettingsFilePath = dialog.FileName;
+            }
+
+            if (!File.Exists(SettingsFilePath)) return;
+            var json = File.ReadAllText(SettingsFilePath);
+            var settings = JsonSerializer.Deserialize<AppSettings>(json);
+            if (settings == null) return;
+            this.OutputFolder = settings.OutputFolder;
+            this.BaseFileName = settings.BaseFileName;
+            if (Enum.TryParse<PrivateKeyFormat>(settings.PrivateKeyFormat, out var fmt))
+                this.PrivateKeyFormat = fmt;
+            this.CommonName = settings.CommonName;
+            this.Organization = settings.Organization;
+            this.OrganizationUnit = settings.OrganizationUnit;
+            this.Locality = settings.Locality;
+            this.State = settings.State;
+            this.Country = settings.Country;
+            this.SanUris = settings.SanUris;
+            this.SanDnsNames = settings.SanDnsNames;
+            this.SanIPAddresses = settings.SanIPAddresses;
+        }
+
+        private string _settingsFilePath = Path.Combine(Environment.CurrentDirectory, "settings.json");
+        public string SettingsFilePath
+        {
+            get => _settingsFilePath;
+            set => SetProperty(ref _settingsFilePath, value);
+        }
+
+        private DelegateCommand _saveSettingsCommand;
+        public DelegateCommand SaveSettingsCommand =>
+            _saveSettingsCommand ?? (_saveSettingsCommand = new DelegateCommand(SaveSettings));
+
+        private DelegateCommand _loadSettingsCommand;
+        public DelegateCommand LoadSettingsCommand =>
+            _loadSettingsCommand ?? (_loadSettingsCommand = new DelegateCommand(LoadSettings));
     }
 }

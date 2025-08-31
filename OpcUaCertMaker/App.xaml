@@ -2,8 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:OpcUaCertMaker"
+             xmlns:conv="clr-namespace:OpcUaCertMaker.Converters"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <conv:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
     </Application.Resources>
 </Application>

@@ -4,54 +4,49 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:OpcUaCertMaker"
+        xmlns:behaviors="clr-namespace:OpcUaCertMaker.Behaviors"
+        xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
         mc:Ignorable="d"
-        Title="{Binding Title}" Height="800" Width="1200"
+        Title="{Binding Title}" Height="700" Width="1200"
         Background="#FFF5F5F5">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
         <StackPanel>
-            <Grid Grid.Row="0" Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <GroupBox Header="Save and Load Setting" Margin="10,0,10,0" Background="#FFE5E5E5">
+                <StackPanel>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Output Folder:" Margin="20,30,10,10" VerticalAlignment="Center" />
-                <DockPanel Grid.Row="0" Grid.Column="1">
-                    <Button DockPanel.Dock="Right" Content="Select Folder" Command="{Binding SelectFolderCommand}" Margin="0,30,20,10" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding OutputFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,30,10,10" VerticalAlignment="Center" />
-                </DockPanel>
+                        <TextBlock Text="Setting Path:" Grid.Row="0" Grid.Column="0" Margin="20,10,10,10" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding SettingsFilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="4" Grid.Column="1" Margin="0,10,10,10" VerticalAlignment="Center">
+                            <b:Interaction.Behaviors>
+                                <behaviors:TextBoxSelectAllBehavior />
+                            </b:Interaction.Behaviors>
+                        </TextBox>
+                    </Grid>
 
-                <TextBlock Text="File Name (without extension):" Margin="20,10,10,10" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                <TextBox Text="{Binding BaseFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" />
+                    <DockPanel Margin="0,10,0,0">
+                        <Button DockPanel.Dock="Right" Content="Load" Width="80" Height="40" Margin="0,0,10,0" Padding="10,0,10,0" HorizontalAlignment="Center" Command="{Binding LoadSettingsCommand}" />
 
-                <TextBlock Text="Private Key Format:" Margin="20,10,10,10" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                <ComboBox ItemsSource="{Binding Source={local:EnumBindingSource {x:Type local:PrivateKeyFormat}}}"
-                SelectedItem="{Binding PrivateKeyFormat}"
-                Margin="0,10,10,10" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" />
-            </Grid>
+                        <Button DockPanel.Dock="Right" Content="Save" Grid.Row="1" Grid.ColumnSpan="3" Width="80" Height="40" Margin="0,0,10,0" Padding="10,0,10,0" HorizontalAlignment="Center" Command="{Binding SaveSettingsCommand}" />
+
+                        <Label></Label>
+                    </DockPanel>
+                </StackPanel>
+            </GroupBox>
 
             <GroupBox Header="Subject" Margin="10" Grid.Row="3" Background="#FFE5E5E5">
                 <Grid>
@@ -70,22 +65,46 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Text="Common Name (CN):" Margin="20,10,10,10" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding CommonName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding CommonName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="Organization (O):" Margin="20,10,10,10" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding Organization, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding Organization, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="Organization Unit (OU):" Margin="20,10,10,10" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding OrganizationUnit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding OrganizationUnit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="Locality (L):" Margin="20,10,10,10" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding Locality, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding Locality, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="4" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="State (ST):" Margin="20,10,10,10" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding State, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding State, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="Country (C):" Margin="20,10,10,10" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding Country, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="6" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding Country, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="6" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
                 </Grid>
             </GroupBox>
 
@@ -102,13 +121,25 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Text="URI:" Margin="20,10,10,10" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding SanUris, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding SanUris, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="DNS Names (comma separated):" Margin="20,10,10,10" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding SanDnsNames, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding SanDnsNames, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="IP Addresses (comma separated):" Margin="20,10,10,10" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
-                    <TextBox Text="{Binding SanIPAddresses, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding SanIPAddresses, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
                 </Grid>
             </GroupBox>
 
@@ -127,17 +158,108 @@
 
                     <TextBlock Text="Valid From (NotBefore):" Margin="20,10,10,10" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" />
                     <DatePicker SelectedDate="{Binding NotBefore, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center"/>
-                    <TextBox Text="{Binding NotBefore, StringFormat=HH:mm:ss, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="10,0,0,0"  Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                    <TextBox Text="{Binding NotBefore, StringFormat=HH:mm:ss, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="10,0,0,0"  Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
 
                     <TextBlock Text="Valid To (NotAfter):" Margin="20,10,10,10" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
                     <DatePicker SelectedDate="{Binding NotAfter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center"/>
-                    <TextBox Text="{Binding NotAfter, StringFormat=HH:mm:ss, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="10,0,0,0" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                    <TextBox Text="{Binding NotAfter, StringFormat=HH:mm:ss, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="10,0,0,0" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" VerticalContentAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
                 </Grid>
             </GroupBox>
 
         </StackPanel>
 
         <StackPanel Grid.Row="0" Grid.Column="1">
+            <GroupBox Header="Output Setting" Margin="10,0,10,0">
+                <Grid Grid.Row="0" Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Output Folder:" Margin="20,0,10,0" VerticalAlignment="Center" />
+                    <DockPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">
+                        <Button DockPanel.Dock="Right" Content="Browse..." Grid.Row="0" Grid.Column="2" Margin="0,0,10,0" Width="80" Height="40" VerticalAlignment="Center" Command="{Binding SelectFolderCommand}" />
+                        <TextBox Text="{Binding OutputFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" VerticalAlignment="Center">
+                            <b:Interaction.Behaviors>
+                                <behaviors:TextBoxSelectAllBehavior />
+                            </b:Interaction.Behaviors>
+                        </TextBox>
+                    </DockPanel>
+
+                    <TextBlock Text="File Name (without extension):" Margin="20,10,10,10" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding BaseFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,10,10" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
+                        <b:Interaction.Behaviors>
+                            <behaviors:TextBoxSelectAllBehavior />
+                        </b:Interaction.Behaviors>
+                    </TextBox>
+
+                    <TextBlock Text="Private Key Format:" Margin="20,10,10,10" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" Margin="0,10,10,10" VerticalAlignment="Center">
+                        <RadioButton Content="PEM" Margin="0,0,20,0"
+                        IsChecked="{Binding PrivateKeyFormat, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=PEM, Mode=TwoWay}" />
+                        <RadioButton Content="PFX"
+                        IsChecked="{Binding PrivateKeyFormat, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=PFX, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <GroupBox Header="Root CA" Margin="0,0,0,0" Background="#FFE5E5E5" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="10" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Private Key:" Grid.Row="0" Grid.Column="0" Margin="15,10,10,10" VerticalAlignment="Center" />
+                                <TextBox Text="{Binding RootCAPrivateKeyInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" Margin="0,10,10,10" VerticalAlignment="Center">
+                                    <b:Interaction.Behaviors>
+                                        <behaviors:TextBoxSelectAllBehavior />
+                                    </b:Interaction.Behaviors>
+                                </TextBox>
+                                <Button Content="Browse..." Grid.Row="0" Grid.Column="2" Margin="0,0,4,0" Width="80" Height="40" VerticalAlignment="Center" Click="BrowseRootCAPrivateKey_Click" />
+
+                                <TextBlock Text="Certificate:" Grid.Row="2" Grid.Column="0" Margin="15,10,10,10" VerticalAlignment="Center" />
+                                <TextBox Text="{Binding RootCACertificateInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="2" Grid.Column="1" Margin="0,10,10,10" VerticalAlignment="Center">
+                                    <b:Interaction.Behaviors>
+                                        <behaviors:TextBoxSelectAllBehavior />
+                                    </b:Interaction.Behaviors>
+                                </TextBox>
+                                <Button Content="Browse..." Grid.Row="2" Grid.Column="2" Margin="0,0,4,0" Width="80" Height="40" VerticalAlignment="Center" Click="BrowseRootCACert_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </GroupBox>
+
+
             <GroupBox Header="Self-Signed Certification Generation" Margin="10,0,10,0" Background="#FFE5E5E5">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Content="Generate" Width="80" Height="40" Grid.Row="12" Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="0,0,10,0" Padding="10,0,10,0"
@@ -148,11 +270,21 @@
                 </DockPanel>
             </GroupBox>
 
+            <GroupBox Header="CA-Signed Certification Generation" Margin="10,0,10,0" Background="#FFE5E5E5">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,0">
+                        <Button DockPanel.Dock="Right" Content="Generate" Width="80" Height="40" Margin="0,0,10,0" Padding="10,0,10,0" HorizontalAlignment="Center" Command="{Binding CreateIntermediateCertificateCommand}" />
+
+                        <Label></Label>
+                    </DockPanel>
+                </StackPanel>
+            </GroupBox>
+
+
             <GroupBox Header="CRL" Margin="10,0,10,0" Background="#FFE5E5E5">
                 <StackPanel>
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
@@ -160,9 +292,15 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+
                         <TextBlock Text="Certificate to Revoke:" Grid.Row="0" Grid.Column="0" Margin="20,10,10,10" VerticalAlignment="Center" />
-                        <TextBox Text="{Binding RevokeCertificateInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" Margin="0,10,10,10" VerticalAlignment="Center" />
-                        <Button Content="Browse..." Grid.Row="0" Grid.Column="2" Margin="0,0,10,0" Width="80" Height="40" VerticalAlignment="Center" Click="BrowseRevokeCert_Click" />
+                        <TextBox Text="{Binding RevokeCertificateInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="4" Grid.Column="1" Margin="0,10,10,10" VerticalAlignment="Center">
+                            <b:Interaction.Behaviors>
+                                <behaviors:TextBoxSelectAllBehavior />
+                            </b:Interaction.Behaviors>
+                        </TextBox>
+                        <Button Content="Browse..." Grid.Row="4" Grid.Column="2" Margin="0,0,10,0" Width="80" Height="40" VerticalAlignment="Center" Click="BrowseRevokeCert_Click" />
+
                     </Grid>
 
                     <DockPanel Margin="0,10,0,0">
