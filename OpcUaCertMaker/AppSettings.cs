@@ -16,5 +16,8 @@ namespace OpcUaCertMaker
         public string SanUris { get; set; }
         public string SanDnsNames { get; set; }
         public string SanIPAddresses { get; set; }
+        public string RootCAPrivateKeyInput { get; set; }
+        public string RootCACertificateInput { get; set; }
+        public bool UseExistingPrivateKey { get; set; }
     }
 }

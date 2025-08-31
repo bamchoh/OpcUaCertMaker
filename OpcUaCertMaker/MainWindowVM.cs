@@ -644,7 +644,10 @@ namespace OpcUaCertMaker
                 Country = this.Country,
                 SanUris = this.SanUris,
                 SanDnsNames = this.SanDnsNames,
-                SanIPAddresses = this.SanIPAddresses
+                SanIPAddresses = this.SanIPAddresses,
+                RootCAPrivateKeyInput = this.RootCAPrivateKeyInput,
+                RootCACertificateInput = this.RootCACertificateInput,
+                UseExistingPrivateKey = this.UseExistingPrivateKey
             };
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
@@ -682,6 +685,9 @@ namespace OpcUaCertMaker
             this.SanUris = settings.SanUris;
             this.SanDnsNames = settings.SanDnsNames;
             this.SanIPAddresses = settings.SanIPAddresses;
+            this.RootCAPrivateKeyInput = settings.RootCAPrivateKeyInput;
+            this.RootCACertificateInput = settings.RootCACertificateInput;
+            this.UseExistingPrivateKey = settings.UseExistingPrivateKey;
         }
 
         private string _settingsFilePath = Path.Combine(Environment.CurrentDirectory, "settings.json");
