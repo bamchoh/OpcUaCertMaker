@@ -13,10 +13,24 @@ OpcUaCertMaker is a WPF application for easily creating and managing self-signed
 - Specify validity period
 
 ## Usage
-1. Enter the required information (output folder, file name, subject, SAN, validity period, etc.).
-2. Click the "Create Self-Signed Certificate" button to generate the certificate and private key.
-   - To use an existing private key, check "Use existing private key if available".
-3. You can also create CRLs and revoke certificates from the GUI.
+
+### OPC UA Certificate Requirements
+OPC UA clients check if the ApplicationUrl matches the URI in the Subject Alternative Name (SAN) of the certificate. To ensure your certificate is valid for OPC UA, set the ApplicationUrl and the SAN URI to the same value. Additionally, the DNS name or IP address in the SAN must match the device where the server or client is running. Please set the correct DNS Name or IP Address in the SAN fields. If there are multiple access points, you can specify multiple values separated by commas.
+
+### Creating a Self-Signed Certificate
+To create a self-signed certificate, click the "Generate by Self" button in the "Certification Generation" section. The generated files will follow the selected Private Key Format (PEM or PFX) and will be saved in the Output Folder with the specified File Name.
+
+### Using an Existing Private Key
+If you check "Use existing private key if available", the certificate will be generated using the existing private key instead of creating a new one. This is useful when you need to revoke a certificate later using a CRL.
+
+### Creating a CRL (Certificate Revocation List)
+To create a CRL, set the private key and certificate in the "Root CA" section, then click the "Clear" button in the "CRL" section. Even for self-signed certificates, you need to set the key and certificate in "Root CA". The generated CRL file will be saved in the Output Folder as File Name + ".crl".
+
+### Revoking a Certificate
+To revoke a certificate, set the private key and certificate in the "Root CA" section, then click the "Revoke" button in the "CRL" section. The CRL will be generated and the specified certificate will be added to the revocation list.
+
+### Creating an Intermediate Certificate
+To create an intermediate certificate, set the private key and certificate in the "Root CA" section, then click the "Generate by CA" button in the "Certification Generation" section. Note: If the Subject CN of the Root CA and the intermediate certificate are the same, the issuer and subject of the generated certificate will match, making it indistinguishable from a self-signed certificate. Therefore, make sure the Subject CNs are different. The private key and certificate set in "Root CA" can be those created as a self-signed certificate.
 
 ## Development Environment
 - .NET 8
