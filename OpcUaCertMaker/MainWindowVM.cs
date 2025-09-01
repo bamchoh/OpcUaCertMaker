@@ -354,9 +354,8 @@ namespace OpcUaCertMaker
                     case PrivateKeyFormat.PEM:
                         using (var sw = new StreamWriter(interKeyPath, false, Encoding.ASCII))
                         {
-                            var pkcs8 = new Pkcs8Generator(intermediateKeyPair.Private, Pkcs8Generator.PbeSha1_3DES);
                             var pemWriter = new PemWriter(sw);
-                            pemWriter.WriteObject(pkcs8);
+                            pemWriter.WriteObject(intermediateKeyPair.Private);
                         }
                         break;
 
