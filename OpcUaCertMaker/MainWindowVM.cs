@@ -480,52 +480,37 @@ namespace OpcUaCertMaker
             {
                 if (string.IsNullOrWhiteSpace(RevokeCertificateInput))
                 {
-                    System.Windows.MessageBox.Show("Please specify a certificate file path or Base64 string.", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show("Please specify a certificate file path", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                     return;
                 }
 
-                Org.BouncyCastle.X509.X509Certificate certToRevoke = null;
-                if (File.Exists(RevokeCertificateInput))
+                if (!File.Exists(RevokeCertificateInput))
                 {
-                    // ファイルから証明書を読み込み
-                    var raw = File.ReadAllBytes(RevokeCertificateInput);
-                    certToRevoke = new Org.BouncyCastle.X509.X509CertificateParser().ReadCertificate(raw);
-                }
-                else
-                {
-                    // Base64文字列として読み込み
-                    try
-                    {
-                        var raw = Convert.FromBase64String(RevokeCertificateInput);
-                        certToRevoke = new Org.BouncyCastle.X509.X509CertificateParser().ReadCertificate(raw);
-                    }
-                    catch
-                    {
-                        System.Windows.MessageBox.Show("Invalid certificate input.", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                        return;
-                    }
+                    System.Windows.MessageBox.Show("The specified certificate file path doesn't exist", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    return;
                 }
 
+                // 失効対象証明書を BouncyCastle で読み込む
+                var raw = File.ReadAllBytes(RevokeCertificateInput);
+                var certToRevoke = new X509CertificateParser().ReadCertificate(raw);
                 var serial = certToRevoke.SerialNumber;
 
+                // CA 証明書と秘密鍵を BouncyCastle 形式で取得
                 var random = new SecureRandom();
                 var (privateKey, cert) = LoadCaCertificateAndKey(RootCAPrivateKeyInput, RootCACertificateInput);
-                var issuerDN = cert.SubjectDN;
 
-                var signatureFactory = new Asn1SignatureFactory("SHA256WITHRSA", privateKey, random);
+                if (cert == null || privateKey == null)
+                {
+                    System.Windows.MessageBox.Show("Failed to load CA certificate or private key.", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    return;
+                }
 
-                var crlGen = new X509V2CrlGenerator();
-                crlGen.SetIssuerDN(issuerDN);
-                crlGen.SetThisUpdate(DateTime.Now.ToUniversalTime());
-                crlGen.SetNextUpdate(DateTime.Now.AddDays(30).ToUniversalTime());
-                crlGen.AddCrlEntry(serial, DateTime.Now.ToUniversalTime(), CrlReason.PrivilegeWithdrawn);
+                // BouncyCastle を使って既存 CRL に追加（なければ新規作成）
+                CreateOrUpdateCrlWithBouncyCastle(cert, privateKey, serial, DateTime.UtcNow);
 
-                var crl = crlGen.Generate(signatureFactory);
                 var crlPath = Path.Combine(OutputFolder, BaseFileName + ".crl");
-                File.WriteAllBytes(crlPath, crl.GetEncoded());
-
                 System.Windows.MessageBox.Show(
-                    $"CRL with revoked certificate was created successfully.\nCRL: {crlPath}",
+                    $"CRL with revoked certificate was created/updated successfully.\nCRL: {crlPath}",
                     "Success",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Information);
@@ -538,6 +523,96 @@ namespace OpcUaCertMaker
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>
+        /// BouncyCastle を使って CRL を作成または既存 CRL に追加して更新する。
+        /// 既存 CRL があればその失効エントリを維持し、CRL 番号をインクリメントして署名し直す。
+        /// </summary>
+        private void CreateOrUpdateCrlWithBouncyCastle(Org.BouncyCastle.X509.X509Certificate caCert, AsymmetricKeyParameter caPrivateKey, Org.BouncyCastle.Math.BigInteger serialToRevoke, DateTime revocationDate)
+        {
+            var crlPath = Path.Combine(OutputFolder, BaseFileName + ".crl");
+
+            X509Crl existingCrl = null;
+            if (File.Exists(crlPath))
+            {
+                try
+                {
+                    var cur = File.ReadAllBytes(crlPath);
+                    existingCrl = new X509CrlParser().ReadCrl(cur);
+                }
+                catch
+                {
+                    // 既存 CRL が壊れている場合は無視して新規作成する
+                    existingCrl = null;
+                }
+            }
+
+            var crlGen = new X509V2CrlGenerator();
+            crlGen.SetIssuerDN(caCert.SubjectDN);
+            crlGen.SetThisUpdate(DateTime.UtcNow);
+            crlGen.SetNextUpdate(DateTime.UtcNow.AddDays(30));
+
+            // 既存の失効エントリをコピー（理由コードは保持しない：必要なら拡張）
+            if (existingCrl != null)
+            {
+                var entries = existingCrl.GetRevokedCertificates();
+                if (entries != null)
+                {
+                    foreach (X509CrlEntry e in entries)
+                    {
+                        // AddCrlEntry の第3引数は reason code (int)。ここでは unspecified(0) を使う。
+                        crlGen.AddCrlEntry(e.SerialNumber, e.RevocationDate, 0);
+                    }
+                }
+            }
+
+            // 新しい失効エントリを追加（reason を付加したい場合は int を変更）
+            crlGen.AddCrlEntry(serialToRevoke, revocationDate, 0);
+
+            // CRL 番号をセット（既存があれば +1, なければ 1）
+            Org.BouncyCastle.Math.BigInteger nextCrlNumber = Org.BouncyCastle.Math.BigInteger.One;
+            if (existingCrl != null)
+            {
+                var ext = existingCrl.GetExtensionValue(X509Extensions.CrlNumber);
+                if (ext != null)
+                {
+                    try
+                    {
+                        var asn1 = Asn1Object.FromByteArray(ext.GetOctets());
+                        var derInt = DerInteger.GetInstance(asn1);
+                        var curNum = derInt.Value;
+                        if (curNum != null)
+                        {
+                            nextCrlNumber = curNum.Add(Org.BouncyCastle.Math.BigInteger.One);
+                        }
+                    }
+                    catch
+                    {
+                        // 読めない場合は 1 のまま
+                        nextCrlNumber = Org.BouncyCastle.Math.BigInteger.One;
+                    }
+                }
+            }
+            crlGen.AddExtension(X509Extensions.CrlNumber, false, new DerInteger(nextCrlNumber));
+
+            // AuthorityKeyIdentifier を付加（CA の公開鍵情報を利用）
+            try
+            {
+                var rootPubKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(caCert.GetPublicKey());
+                var aki = new AuthorityKeyIdentifier(rootPubKeyInfo, new GeneralNames(new GeneralName(caCert.SubjectDN)), caCert.SerialNumber);
+                crlGen.AddExtension(X509Extensions.AuthorityKeyIdentifier, false, aki);
+            }
+            catch
+            {
+                // 失敗しても続行
+            }
+
+            // 署名して出力
+            var random = new SecureRandom();
+            var signatureFactory = new Asn1SignatureFactory("SHA256WITHRSA", caPrivateKey, random);
+            var newCrl = crlGen.Generate(signatureFactory);
+            File.WriteAllBytes(crlPath, newCrl.GetEncoded());
         }
 
         private (AsymmetricKeyParameter, Org.BouncyCastle.X509.X509Certificate) LoadCaCertificateAndKey(string privateKeyPath, string certPath)
