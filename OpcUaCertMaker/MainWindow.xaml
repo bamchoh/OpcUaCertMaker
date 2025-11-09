@@ -264,6 +264,8 @@
                 <StackPanel Orientation="Vertical">
                     <CheckBox Content="Use existing private key if available" Margin="20,0,0,0" Height="40" IsChecked="{Binding UseExistingPrivateKey, Mode=TwoWay}" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
 
+                    <CheckBox Content="CA Flag" Margin="20,0,0,0" Height="40" IsChecked="{Binding CAFlag, Mode=TwoWay}" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Generate by Self" Width="120" Height="40" Grid.Row="12" Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="0,0,10,0" Padding="10,0,10,0" 
                                 Command="{Binding CreateSelfSignedCertificateCommand}" VerticalAlignment="Center"/>
